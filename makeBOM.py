@@ -106,7 +106,7 @@ df_kumihai_partslist['PartName']=parts
 # df_kumihai_partslist['PartName']=s_kumihai_list
 df_kumihai_partslist = df_kumihai_partslist.astype({'Count':int})
 
-df_kumihai_partslist.loc[:,columun_list_PBAN_CSV].to_csv(s_output_path+s_output_filename+'_PBAN.csv', header=False, index=False)
+df_kumihai_partslist.loc[:,columun_list_PBAN_CSV].to_csv(s_output_path+s_output_filename+'_PBAN.csv', encoding='utf_8_sig', header=False, index=False)
 df_kumihai_partslist.loc[:,columun_list_kousei_CSV].to_csv(s_output_path+s_output_filename+'_kousei.csv',header=False, index=False)
 
 
