@@ -1,5 +1,15 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+# 
+# Eagle CAD の部品表出力を在庫部品リストと照合して、組配用部品表、構成部品表のリストを作る
+#       v1.0    2021/3  miyamoto
+
+#   出力ファイルはCSV, UTF-8, CR/LF
+#       組配部品表はUTF-8(BOM)  ->エクセルで読める
+#   辞書ファイル（在庫部品）はBoxの上ある。
+
+# 実行は：
+#   $ python3 makeBOM.py {PATHtoTargetFile}/EagleBOMファイル
 
 import pandas as pd
 import sys
