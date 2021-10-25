@@ -36,14 +36,14 @@ def make_kumihai_partslist(df_partslist):
     # 同じ部品を何個、どこで使っているか調べるため  部品名でグループ化しDataFrameに入れる
     # grouped_by_value.groups[item]とすると、itemで示された名前のグループを構成するindex番号のリストが得られる
     df_grouped_by_value = df_partslist.groupby('Value')
-    # print(df_grouped_by_value.groups)
+    print(df_grouped_by_value.groups)
     
     df_kumihai_partslist = pd.DataFrame({'Mfr':[], 'Category':[], 'Partnumber':[], 'PartName':'', 'Count':[], 'NumTerminals':[], 'UnitPrice':[]})
     # appendするために基本の空データフレームを作る
     # print(df_kumihai_partslist.dtypes)
     
     for item in df_partslist['Value'].unique(): # 部品表のValue欄からユニークなリストを作ってiteration
-        
+        print(item)
         # miから部品表のCADnameの値で検索する
         if len( mi[mi['CADname']==item] )>0:
             # マッチがある場合      複数ある場合は最初を取る(iloc[0,:])
@@ -104,7 +104,14 @@ mi.columns=['Category','Partnumber','Mfr','CADname','NumTerminals','UnitPrice']
 
 # 部品表読み込み
 print('Reading file. -- ',end='')
-df_partslist = pd.read_table(str(p_argv1), header = 4, delim_whitespace=True).loc[:,['Part','Value','Sheet']]
+# df_partslist = pd.read_table(str(p_argv1), header = 4, delim_whitespace=True).loc[:,['Part','Value','Sheet']]
+# ki-CADでのデータの取り込み    調整中
+df_partslist = pd.read_table(str(p_argv1), header = 4, sep="\t").loc[:,['Ref','Value','Part']]   # table reading succeed.
+df_partslist = df_partslist.rename(columns={'Part':'Sheet'}).rename(columns={'Ref':'Part'}) # change column name
+print()
+
+print(df_partslist)
+
 # 空行はカウントされないので四行目がヘッダ名の定義に相当する。
 # スペース区切りのためdelim_whitespace=Trueを入れた
 # ここでは、全ての行のPart,Value,Sheetのデータを抜き出す。
