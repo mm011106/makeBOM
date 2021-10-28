@@ -12,11 +12,14 @@
 #   $ python3 makeBOM.py {PATHtoTargetFile}/EagleBOMファイル
 # 引数：
 #   1:EagleBOMファイルの指定（必須）
-#   
+# 出力：
+#  {PATHtoTargetFile}の下に partslist というディレクトリが作成され、そこに出力される
+#
 
 from numpy import dtype
 import pandas as pd
 import sys
+import os
 from pathlib import Path
 
 # 定数、関数の定義
@@ -55,7 +58,7 @@ def make_kumihai_partslist(df_partslist):
         # print(df_partslist.at[idx, 'Part'])
         # print(df_sekkei_partslist.loc[idx])
         sizeCode=df_partslist.at[idx,'Size']
-        solderingMethod=df_partslist.at[idx,'Soldering']
+        solderingMethod=df_partslist.at[idx,'Package']
 
         # BOMの部品名でMIを検索
         matchedMI=mi[mi['CADname']==cadName]
@@ -118,7 +121,9 @@ def make_kumihai_partslist(df_partslist):
     print()
     # print(df_sekkei_partslist)
     # ファイルに落とす（テスト用のコード）  あとできちんとコードを書く
-    df_sekkei_partslist.to_csv('sekkei_partslist' + '_kousei' + '' + '.csv', header=False, index=False)
+    # df_sekkei_partslist.to_csv('sekkei_partslist' + '_kousei' + '' + '.csv', header=False, index=False)
+    df_sekkei_partslist.sort_values('Ref').to_csv(s_export_filename + '_sekkei' + '.csv', encoding='utf_8_sig', header=False, index=False)
+
 
     # print(df_sekkei_partslist.groupby('Partnumber').groups['RK73H1ETTP1000F'])
     df_sekkei_partslist_groupedby_Partnumber=df_sekkei_partslist.groupby('Partnumber')
@@ -164,20 +169,22 @@ if len(sys.argv)>1 : # 引数がなければエラー
     sheet_extract = 0
     if p_argv1.is_file() : # 引数のファイルの実体がなければエラー
         # print(p_argv1.resolve())
-        # print(p_argv1.parent.resolve())
+        print(p_argv1.parent.resolve())
         s_output_filename = str(p_argv1.stem)
-        s_output_path = str(p_argv1.parent.resolve())+'/'
+        s_output_path = str(p_argv1.parent.resolve())+'/partslist/'
     else: 
         s_argv_fail_message = "Specified file did not exist or not a file."
     
 else:
     s_argv_fail_message = 'No input files specified.'
 
+
 # エラーがある場合は終了
 if len(s_argv_fail_message)!=0 :
     print(s_argv_fail_message)
     exit()
 
+os.makedirs(s_output_path, exist_ok=True)
 
 # 出力する部品表に必要な要素の指定
 columun_list_kousei_CSV = ['Category', 'Partnumber', 'Mfr',  'Count', 'UnitPrice']
@@ -195,7 +202,7 @@ print('  completed.')
 print('Reading BOM file. -- ',end='')
 # df_partslist = pd.read_table(str(p_argv1), header = 4, delim_whitespace=True).loc[:,['Part','Value','Sheet']]
 # ki-CADでのデータの取り込み
-df_partslist = pd.read_table(str(p_argv1), header = 4, sep="\t", dtype={'Ref':'object','Value':'object','Part':'object','Soldering':'object','Size':'object'}).loc[:,['Ref','Value','Part','Soldering','Size']]   # table reading succeed.
+df_partslist = pd.read_table(str(p_argv1), header = 4, sep="\t", dtype={'Ref':'object','Value':'object','Part':'object','Package':'object','Size':'object'}).loc[:,['Ref','Value','Part','Package','Size']]   # table reading succeed.
 df_partslist = df_partslist.rename(columns={'Part':'Sheet'}).rename(columns={'Ref':'Part'}) # change column name
 print('  completed.')
 
@@ -207,7 +214,7 @@ print('  completed.')
 
 # print('All Sheets. -- ',end='')
 s_export_filename = s_output_path + s_output_filename 
-s_postfix = '_A'
+s_postfix = ''
 df_kumihai_partslist=make_kumihai_partslist(df_partslist)
 df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_PBAN_CSV].to_csv(s_export_filename + '_PBAN' + s_postfix + '.csv', encoding='utf_8_sig', header=False, index=False)
 df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_kousei_CSV].to_csv(s_export_filename + '_kousei' + s_postfix + '.csv', header=False, index=False)
