@@ -31,11 +31,6 @@ p_dic_file = p_dic_path / s_dic_filename
 
 def make_kumihai_partslist(df_partslist):
     global mi
-
-    # 同じ部品を何個、どこで使っているか調べるため  部品名でグループ化しDataFrameに入れる
-    # grouped_by_value.groups[item]とすると、itemで示された名前のグループを構成するindex番号のリストが得られる
-    df_grouped_by_value = df_partslist.groupby('Value')
-    # print(df_grouped_by_value.groups)
     
     df_kumihai_partslist = pd.DataFrame({'Mfr':[], 'Category':[], 'Partnumber':[], 'PartName':'', 'Count':[], 'NumTerminals':[], 'UnitPrice':[]})
     # appendするために基本の空データフレームを作る
@@ -50,13 +45,16 @@ def make_kumihai_partslist(df_partslist):
     # print(df_partslist['Part'])
     # df_sekkei_partslist['Ref']=df_partslist['Part']
 
+    # 最初に設計部品表を作る    これを元にして組配部品表を組み直すという手順で進む
+
     # print(df_partslist.dtypes)
     print('Generating Sekkei Partslist....')
     for idx in df_partslist.index.values:
         # print(df_partslist.loc[idx,'Part'])
-        cadName=df_partslist.at[idx,'Value']
         # print(df_partslist.at[idx, 'Part'])
         # print(df_sekkei_partslist.loc[idx])
+        
+        cadName=df_partslist.at[idx,'Value']
         sizeCode=df_partslist.at[idx,'Size']
         solderingMethod=df_partslist.at[idx,'Package']
 
@@ -120,8 +118,7 @@ def make_kumihai_partslist(df_partslist):
     print('.. finished')
     print()
     # print(df_sekkei_partslist)
-    # ファイルに落とす（テスト用のコード）  あとできちんとコードを書く
-    # df_sekkei_partslist.to_csv('sekkei_partslist' + '_kousei' + '' + '.csv', header=False, index=False)
+    # ファイルに落とす（テスト用のコード）
     df_sekkei_partslist.sort_values('Ref').to_csv(s_export_filename + '_sekkei' + '.csv', encoding='utf_8_sig', header=False, index=False)
 
 
@@ -162,7 +159,7 @@ def make_kumihai_partslist(df_partslist):
     return df_kumihai_partslist
 
 
-
+# ファイルの準備
 s_argv_fail_message=''
 if len(sys.argv)>1 : # 引数がなければエラー
     p_argv1=Path(sys.argv[1])
@@ -178,12 +175,12 @@ if len(sys.argv)>1 : # 引数がなければエラー
 else:
     s_argv_fail_message = 'No input files specified.'
 
-
-# エラーがある場合は終了
+# ファイルの準備中にエラーがある場合は終了
 if len(s_argv_fail_message)!=0 :
     print(s_argv_fail_message)
     exit()
 
+# ファイル出力のためのパスを作成
 os.makedirs(s_output_path, exist_ok=True)
 
 # 出力する部品表に必要な要素の指定
