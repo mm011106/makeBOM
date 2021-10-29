@@ -4,7 +4,7 @@
 # KI-CAD の部品表出力を在庫部品リストと照合して、組配用部品表、構成部品表のリストを作る
 #       v2.0    2021/10  miyamoto
 
-#   出力ファイルはCSV, UTF-8, CR/LF
+#   出力ファイルはCSV, UTF-8, LF
 #       組配部品表はUTF-8(BOM)  ->エクセルで読める
 #   辞書ファイル（在庫部品）はBoxの上ある。
 
@@ -29,21 +29,16 @@ p_dic_file = p_dic_path / s_dic_filename
 # windowsとの互換性のため、必要なファイルへのパスをpathlibで加工するようにした
 # ファイル名は適宜変更のこと
 
-def make_kumihai_partslist(df_partslist):
-    global mi
-    
-    df_kumihai_partslist = pd.DataFrame({'Mfr':[], 'Category':[], 'Partnumber':[], 'PartName':'', 'Count':[], 'NumTerminals':[], 'UnitPrice':[]})
-    # appendするために基本の空データフレームを作る
-    # print(df_kumihai_partslist.dtypes)
 
+#
+#   設計部品表を作成する
+#  引数：
+#   1:ki-CADからのBOM（必須）
+def make_sekkei_partslist(df_partslist):
     df_sekkei_partslist = pd.DataFrame({'Ref':[], 'Category':[], 'Partnumber':[],'Mfr':[]},dtype=object)
     # print(df_sekkei_partslist.dtypes)
     # dtypeで表のデータの型を前もって指定しておかないと、Floatになる。
     # 他のdataframeを代入するとその型に上書きされるけれど、要素として代入しようとすると型が合わないのでエラーになる。
-
-    # print(df_partslist.index.values)
-    # print(df_partslist['Part'])
-    # df_sekkei_partslist['Ref']=df_partslist['Part']
 
     # 最初に設計部品表を作る    これを元にして組配部品表を組み直すという手順で進む
 
@@ -118,14 +113,19 @@ def make_kumihai_partslist(df_partslist):
     print('.. finished')
     print()
     # print(df_sekkei_partslist)
-    # ファイルに落とす（テスト用のコード）
-    df_sekkei_partslist.sort_values('Ref').to_csv(s_export_filename + '_sekkei' + '.csv', encoding='utf_8_sig', header=False, index=False)
+    return df_sekkei_partslist
 
-
-    # print(df_sekkei_partslist.groupby('Partnumber').groups['RK73H1ETTP1000F'])
-    df_sekkei_partslist_groupedby_Partnumber=df_sekkei_partslist.groupby('Partnumber')
-    # print(df_sekkei_partslist['Partnumber'].unique())
-
+#
+#   組配部品表（PBAN,構成表用）を作成する
+#  引数：
+#   1:設計部品表（必須）
+def make_kumihai_partslist(df_partslist):
+    global mi
+    
+    df_kumihai_partslist = pd.DataFrame({'Mfr':[], 'Category':[], 'Partnumber':[], 'PartName':'', 'Count':[], 'NumTerminals':[], 'UnitPrice':[]})
+    #   Partnumber ：部品の名前
+    df_sekkei_partslist_groupedby_Partnumber=df_partslist.groupby('Partnumber')
+   
     print('Generating Kumihai partslist...')
     for item in df_sekkei_partslist['Partnumber'].unique(): # 部品表のValue欄からユニークなリストを作ってiteration
         print(item)
@@ -142,10 +142,10 @@ def make_kumihai_partslist(df_partslist):
         else:
             # マッチがない場合はエラーを表示
             df_kumihai_partslist.at[item,'Category']='NO-MI'
-            print("WARNING: No MI Found on: Ref =",item,'/ PartNumber =',df_sekkei_partslist[df_sekkei_partslist['Partnumber']==item]['Ref'].tolist())
+            print("WARNING: No MI Found on: Ref =",item,'/ PartNumber =',df_partslist[df_partslist['Partnumber']==item]['Ref'].tolist())
 
-        # 同じ部品が使われている部品番号をリストとして取得
-        partsOnItem = df_sekkei_partslist.loc[df_sekkei_partslist_groupedby_Partnumber.groups[item],'Ref'].tolist()
+        # 同じ部品が使われている部品番号をリストとして取得
+        partsOnItem = df_partslist.loc[df_sekkei_partslist_groupedby_Partnumber.groups[item],'Ref'].tolist()
         # print(partsOnItem)
         #部品使用数をカウントして'Count'rowに入れる
         df_kumihai_partslist.at[item,'Count']=len(partsOnItem)
@@ -180,40 +180,49 @@ if len(s_argv_fail_message)!=0 :
     print(s_argv_fail_message)
     exit()
 
-# ファイル出力のためのパスを作成
+# ファイル出力のためのパスを作成    引数のBOMファイルがあるディレクトリの中にディレクトリpartlistを作る
 os.makedirs(s_output_path, exist_ok=True)
 
-# 出力する部品表に必要な要素の指定
+# 出力する部品表に必要な要素の指定（MIのコラム名を指定する）
+#   構成部品表
 columun_list_kousei_CSV = ['Category', 'Partnumber', 'Mfr',  'Count', 'UnitPrice']
+#   PBAN組配用部品表 
 columun_list_PBAN_CSV = ['Mfr', 'Category', 'Partnumber', 'PartName', 'Count', 'NumTerminals']
 
 # MI読み込み
 print('Reading MI. -- ',end='')
-# MIの読み込み 必要なrowだけ読み込む コラム名を設定
+
+#   必要なrowだけ読み込んで、コラム名を設定（ファイルからはコラム名は読み込めない）
 mi=pd.read_table(str(p_dic_file), header=None).loc[:,[0,1,2,3,9,14,7,8]]
 mi.columns=['Category','Partnumber','Mfr','CADname','NumTerminals','UnitPrice','SolderingMethod','SizeCode']
-# print(mi.dtypes)
+
 print('  completed.')
 
-# 部品表読み込み
+# BOM読み込み
 print('Reading BOM file. -- ',end='')
-# df_partslist = pd.read_table(str(p_argv1), header = 4, delim_whitespace=True).loc[:,['Part','Value','Sheet']]
-# ki-CADでのデータの取り込み
+# ki-CADのBOMデータの取り込み
+# 空行はカウントされないので四行目がヘッダ名の定義に相当する。Ki-CADの方のBOM出力スクリプトに依存するので注意
+# ここでは、全ての行のPart(Ref),Value,Sheet(Part), Package, Sizeのデータを抜き出す。
 df_partslist = pd.read_table(str(p_argv1), header = 4, sep="\t", dtype={'Ref':'object','Value':'object','Part':'object','Package':'object','Size':'object'}).loc[:,['Ref','Value','Part','Package','Size']]   # table reading succeed.
 df_partslist = df_partslist.rename(columns={'Part':'Sheet'}).rename(columns={'Ref':'Part'}) # change column name
 print('  completed.')
 
 # print(df_partslist)
-
-# 空行はカウントされないので四行目がヘッダ名の定義に相当する。
-# スペース区切りのためdelim_whitespace=Trueを入れた
-# ここでは、全ての行のPart,Value,Sheetのデータを抜き出す。
-
-# print('All Sheets. -- ',end='')
+# 出力するファイル名（ベース）の作成    実際にはさらにポストフィックスある
 s_export_filename = s_output_path + s_output_filename 
 s_postfix = ''
-df_kumihai_partslist=make_kumihai_partslist(df_partslist)
-df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_PBAN_CSV].to_csv(s_export_filename + '_PBAN' + s_postfix + '.csv', encoding='utf_8_sig', header=False, index=False)
+
+# BOMから設計部品表を作成
+df_sekkei_partslist=make_sekkei_partslist(df_partslist)
+# 設計部品表ファイルを作成
+df_sekkei_partslist.sort_values('Ref').to_csv(s_export_filename + '_sekkei' + '.csv', encoding='utf_8_sig', header=False, index=False)
+
+
+# 設計部品表から組配部品表を作成
+df_kumihai_partslist=make_kumihai_partslist(df_sekkei_partslist)
+# PBANの組配用部品表を作成
+df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_PBAN_CSV].to_csv(s_export_filename + '_PBAN' + s_postfix + '.csv', encoding='shift_jis', header=False, index=False)
+# 構成部品表を作成
 df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_kousei_CSV].to_csv(s_export_filename + '_kousei' + s_postfix + '.csv', header=False, index=False)
 
 
