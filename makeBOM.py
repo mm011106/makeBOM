@@ -221,7 +221,7 @@ df_sekkei_partslist.sort_values('Ref').to_csv(s_export_filename + '_sekkei' + '.
 # 設計部品表から組配部品表を作成
 df_kumihai_partslist=make_kumihai_partslist(df_sekkei_partslist)
 # PBANの組配用部品表を作成
-df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_PBAN_CSV].to_csv(s_export_filename + '_PBAN' + s_postfix + '.csv', encoding='shift_jis', header=False, index=False)
+df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_PBAN_CSV].to_csv(s_export_filename + '_PBAN' + s_postfix + '.csv', encoding='utf_8_sig', header=False, index=False)
 # 構成部品表を作成
 df_kumihai_partslist.sort_values('Mfr').loc[:,columun_list_kousei_CSV].to_csv(s_export_filename + '_kousei' + s_postfix + '.csv', header=False, index=False)
 
